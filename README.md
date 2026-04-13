@@ -1,63 +1,107 @@
-# 🤖 Generative AI with Large Language Models — Course Labs
+# Generative AI with Large Language Models — Course Labs
 
-> **DeepLearning.AI × AWS** | Coursera | Ibai Mutiloa Aliaga
+My lab notebooks for the [DeepLearning.AI — Generative AI with Large Language Models](https://www.coursera.org/learn/generative-ai-with-llms) course on Coursera.
 
-Repositorio personal con los laboratorios y notas del curso **"Generative AI with Large Language Models"** de DeepLearning.AI en colaboración con AWS. El curso cubre desde los fundamentos de los LLMs hasta técnicas avanzadas de fine-tuning, RLHF y despliegue en producción.
+Each lab builds on the previous one, progressively improving a FLAN-T5 model for dialogue summarization — from zero-shot prompting to instruction fine-tuning to RLHF-based detoxification.
 
----
+## Repository Structure
 
-## 📚 Contenido del curso
-
-### Semana 1 — Fundamentos de LLMs y Prompt Engineering
-- Arquitectura Transformer (encoder, decoder, self-attention)
-- Casos de uso de LLMs: summarization, traducción, NER, code generation
-- Prompt Engineering: zero-shot, one-shot y few-shot inference
-- Parámetros de configuración generativa: temperature, top-k, top-p
-- Ciclo de vida de un proyecto de IA generativa
-
-### Semana 2 — Fine-Tuning
-- Preentrenamiento de LLMs y leyes de escalado
-- Fine-tuning supervisado para tareas específicas
-- PEFT (Parameter Efficient Fine-Tuning)
-
-### Semana 3 — Alineación y Despliegue
-- Reinforcement Learning with Human Feedback (RLHF)
-- Optimización de modelos para producción
-- Integración con APIs externas y RAG
+```
+├── Week_1_Lab/
+│   └── Lab_1_summarize_dialogue.ipynb
+├── Week_2_Lab/
+│   └── Lab_2_fine_tune_generative_ai_model.ipynb
+├── Week_3_Lab/
+│   └── Lab_3_fine_tune_model_to_detoxify_summaries.ipynb
+└── README.md
+```
 
 ---
 
-## 🧪 Laboratorios
+## Lab 1 — Prompt Engineering & Zero/Few-Shot Inference
 
-### Week 1
+**Goal:** Explore how prompt design affects FLAN-T5 output quality for dialogue summarization, without modifying any model weights.
 
-#### Lab 1 — Generative AI Use Case: Dialogue Summarization
-[`Week_1_Lab/Lab_1_summarize_dialogue.ipynb`](Week_1_Lab/Lab_1_summarize_dialogue.ipynb)
+**Key concepts:**
+- Zero-shot, one-shot and few-shot inference
+- In-context learning
+- Prompt templates
+- Baseline ROUGE evaluation
 
-Exploración de la tarea de **resumen de diálogos** usando el modelo **FLAN-T5** en AWS SageMaker. El laboratorio cubre:
-
-- **Zero-shot inference** — el modelo resume sin ningún ejemplo previo
-- **One-shot inference** — se proporciona un ejemplo completo en el prompt
-- **Few-shot inference** — múltiples ejemplos para mejorar el output
-- Comparación del impacto de cada técnica en la calidad del resumen
-- Primeros pasos en **Prompt Engineering** con templates estructurados
-
-**Modelo usado:** `google/flan-t5-base`  
-**Dataset:** [DialogSum](https://huggingface.co/datasets/knkarthick/dialogsum) (Hugging Face)  
-**Entorno:** AWS SageMaker via Vocareum (Coursera)
+**Stack:** `transformers`, `datasets` (knkarthick/dialogsum), FLAN-T5
 
 ---
 
-## 🛠️ Stack técnico del curso
+## Lab 2 — Instruction Fine-Tuning + PEFT/LoRA
 
-![Python](https://img.shields.io/badge/Python-3776AB?style=flat&logo=python&logoColor=white)
-![AWS](https://img.shields.io/badge/AWS_SageMaker-FF9900?style=flat&logo=amazonaws&logoColor=white)
-![HuggingFace](https://img.shields.io/badge/HuggingFace-FFD21E?style=flat&logo=huggingface&logoColor=black)
-![PyTorch](https://img.shields.io/badge/PyTorch-EE4C2C?style=flat&logo=pytorch&logoColor=white)
+**Goal:** Improve summarization quality by fine-tuning FLAN-T5 on the DialogSum dataset, first with full fine-tuning and then with parameter-efficient fine-tuning (PEFT/LoRA).
+
+**Key concepts:**
+- Instruction fine-tuning with prompt-completion pairs
+- Full fine-tuning vs PEFT — memory and performance trade-offs
+- LoRA (Low-Rank Adaptation) — only ~1.4% of parameters trained
+- ROUGE metrics for quantitative evaluation (ROUGE-1, ROUGE-2, ROUGE-L)
+
+**Results summary:**
+
+| Method | ROUGE-1 improvement | Trainable params |
+|---|---|---|
+| Base model (zero-shot) | baseline | — |
+| Full fine-tuning | highest | 100% |
+| PEFT/LoRA | near full FT | ~1.4% |
+
+**Stack:** `transformers`, `peft`, `datasets`, `evaluate`, FLAN-T5, LoRA
 
 ---
 
-## 👤 Autor
+## Lab 3 — Detoxification with RLHF + PPO
 
-**Ibai Mutiloa Aliaga** — Software Developer · AI Systems · Backend  
-[github.com/ibai-mutiloa](https://github.com/ibai-mutiloa) · [LinkedIn](https://linkedin.com/in/ibai-mutiloa-aliaga)
+**Goal:** Reduce toxicity of the fine-tuned model's summaries using Reinforcement Learning from Human Feedback (RLHF) with Proximal Policy Optimization (PPO).
+
+**Key concepts:**
+- RLHF pipeline — reward model drives LLM weight updates
+- PPO (Proximal Policy Optimization) with trust region
+- KL divergence vs reference model to prevent reward hacking
+- Hate speech classifier (Facebook RoBERTa) as reward model
+- Value head for advantage estimation in PPO
+- PEFT/LoRA maintained throughout — only adapters updated
+
+**Architecture:**
+```
+Prompt → FLAN-T5 (LoRA) → Summary
+                               ↓
+              RoBERTa hate speech classifier
+                               ↓
+                   not_hate logit → reward scalar
+                               ↓
+              PPOTrainer updates LoRA adapters
+              KL divergence keeps model stable
+```
+
+**Stack:** `transformers`, `peft`, `trl`, `evaluate`, `datasets`, FLAN-T5, RoBERTa
+
+---
+
+## Lab Progression
+
+```
+Lab 1 (Prompting)
+    └─→ Lab 2 (Fine-tuning) ──── produces LoRA checkpoint
+              └─→ Lab 3 (RLHF) ─ takes Lab 2 checkpoint as input
+```
+
+Each lab takes the output of the previous as its starting point, mirroring a realistic LLM development workflow: prompt → fine-tune → align.
+
+---
+
+## Setup
+
+All labs require an `ml.m5.2xlarge` instance (8 vCPUs, 32 GiB RAM) or equivalent.
+
+```bash
+pip install torch transformers datasets evaluate peft trl
+```
+
+## Course
+
+[Generative AI with Large Language Models](https://www.coursera.org/learn/generative-ai-with-llms) — DeepLearning.AI & AWS on Coursera
